@@ -7,7 +7,7 @@ https://tomb.finance/masonry
 Or reference the Masonry's smart contract here:
 https://ftmscan.com/address/0x8764DE60236C5843D9faEB1B638fbCE962773B67#code
 
-## Dependancies
+## Dependencies
 [web3](https://pypi.org/project/web3/)
 
 `pip install web3`
