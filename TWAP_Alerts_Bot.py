@@ -10,10 +10,10 @@ import requests
 import pause
 
 # @Tomb_Alerts Twitter Account Keys
-api = twitter.Api(consumer_key='<sanitized>',
-                  consumer_secret='<sanitized>',
-                  access_token_key='<sanitized>',
-                  access_token_secret='<sanitized>')
+api = twitter.Api(consumer_key='',
+                  consumer_secret='',
+                  access_token_key='',
+                  access_token_secret='')
 
 # Tomb.finance Masonry Contract Details
 masonry_contract = "0x8764DE60236C5843D9faEB1B638fbCE962773B67"
@@ -29,13 +29,21 @@ if w3.isConnected():
 # Access Masonry Contract
 targetContract = w3.eth.contract(address=masonry_contract, abi=masonry_abi)
 
-# Establish current epoch state
+# Establish baseline epoch state
 epoch_index = targetContract.functions.epoch().call()
 current_epoch = epoch_index
+prev_raw_twap = targetContract.functions.getTombPrice().call()
+if prev_raw_twap < 1000000000000000000:
+    prev_period_type = "contraction"
+elif prev_raw_twap >= 1010000000000000000:
+    curnt_period_type = "expansion"
+else:
+    prev_period_type = "zen"
+print(f"TWAP_Alerts.py: Epoch {str(epoch_index)} baseline was a period of {prev_period_type}.")
 
 # Loop during every epoch
 while current_epoch == epoch_index:
-    print("TWAP_Alerts.py: The current epoch is " + str(current_epoch) + ".")
+    print(f"TWAP_Alerts.py: The current epoch is {str(current_epoch)}.")
     print("TWAP_Alerts.py: Waiting until the next epoch begins.")
     time_to_next_epoch = targetContract.functions.nextEpochPoint().call() # provides a unix timestamp of when the next epoch will start
     pause.until(time_to_next_epoch) # using the pause.py library, pause until the next epoch begins
@@ -43,28 +51,38 @@ while current_epoch == epoch_index:
     pause.minutes(3) # allow 3 minutes for smart contract updates on the blockchain
     
     # Pull the last epoch's TWAP value
-    raw_twap = targetContract.functions.getTombPrice().call()
-    twap_converted = round((raw_twap/1000000000000000000), 4)
-    print("TWAP_Alerts.py: The last epoch's TWAP value was " + str(twap_converted) + ".")
+    curnt_raw_twap = targetContract.functions.getTombPrice().call()
+    curnt_twap_converted = round((curnt_raw_twap/1000000000000000000), 4)
+    print("TWAP_Alerts.py: The last epoch's TWAP value was " + str(curnt_twap_converted) + ".")
 
     # Determine the next epoch's period type
-    if raw_twap < 1000000000000000000:
-        period_type = "contraction"
-    elif twap_converted >= 1010000000000000000:
-        period_type = "expansion"
+    if curnt_raw_twap < 1000000000000000000:
+        curnt_period_type = "contraction"
+    elif curnt_raw_twap >= 1010000000000000000:
+        curnt_period_type = "expansion"
     else:
-        period_type = "zen"
-    print("TWAP_Alerts.py: The last epoch was a period of " + period_type + ".")
+        curnt_period_type = "zen"
+    print(f"TWAP_Alerts.py: The last epoch was a period of {curnt_period_type}.")
+    print(f"TWAP_ALERTS.py: The prior epoch was a period of {prev_period_type}.")
 
-    # Post a tweet
-    api.PostUpdate(
-    f"[End of Epoch {str(current_epoch)}]\n\n"+
-    f"TWAP: {str(twap_converted)}\n"+
-    f"Beginning #{period_type} phase.\n\n"+
-    f"$TOMB $TSHARE $TBOND $FTM")
-    
-    print("TWAP_Alerts.py: Tweet posted. Restarting loop.")
+    if curnt_period_type == prev_period_type:
+    # Post a tweet that states a continuation
+        api.PostUpdate(
+        f"[End of Epoch {str(current_epoch)}]\n\n"+
+        f"TWAP: {str(curnt_twap_converted)}\n"+
+        f"Continuing #{curnt_period_type} phase.\n\n"+
+        f"$TOMB $TSHARE $TBOND $FTM")
+        print("TWAP_Alerts.py: Continuation tweet posted. Restarting loop.")
+    else:
+    # Post a tweet that states "beginning new phase"
+        api.PostUpdate(
+        f"[End of Epoch {str(current_epoch)}]\n\n"+
+        f"TWAP: {str(curnt_twap_converted)}\n"+
+        f"Beginning #{curnt_period_type} phase.\n\n"+
+        f"$TOMB $TSHARE $TBOND $FTM")
+        print("TWAP_Alerts.py: New phase tweet posted. Restarting loop.")
     
     # Re-establish loop variables for new epoch
+    prev_period_type = curnt_period_type
     epoch_index = targetContract.functions.epoch().call()
     current_epoch = epoch_index
