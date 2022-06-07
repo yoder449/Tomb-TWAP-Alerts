@@ -1,5 +1,5 @@
 # Tomb TWAP Alerts Bot
-This is a Twitter bot coded in Python which posts the time-weighted average price (TWAP) value every 6 hours to the [@Tomb_Alerts](https://twitter.com/Tomb_Alerts) twitter handle.
+This is a Twitter bot coded in Python which posts the time-weighted average price (TWAP) value every 6 hours to the [@Tomb_Alerts](https://twitter.com/Tomb_Alerts) twitter handle. It runs on an Amazon Cloud EC2 Linux instance for 24 hour, independent uptime.
 
 For more information, see the Tomb.finance Masonry page:
 https://tomb.finance/masonry
